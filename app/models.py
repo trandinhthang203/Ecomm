@@ -1,19 +1,37 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.db import models
+from django.contrib.auth.hashers import make_password
 
-class Acount(models.Model):
-    user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True, blank=False)
-    password = models.CharField(max_length=200, null=True)
-    email = models.CharField(max_length=200, null=True)
-    role = models.BooleanField(default=False, null=True, blank=True)
+class Account(models.Model):
+    ROLE_CHOICES = (
+        ('admin', 'Admin'),
+        ('user', 'User'),
+    )
+    STATUS_CHOICES = (
+        ('active', 'Active'),
+        ('locked', 'Locked'),
+    )
+    id = models.AutoField(primary_key=True)  
+    username = models.CharField(max_length=100, unique=True)
+    password = models.CharField(max_length=100)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    email = models.EmailField(unique=True)
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user')  # Sử dụng default để gán giá trị mặc định
+
+    def save(self, *args, **kwargs):
+        # Mã hóa mật khẩu trước khi lưu vào cơ sở dữ liệu
+        self.password = make_password(self.password)
+        super().save(*args, **kwargs)
 
     
-class Detail_Acount(models.Model):
-    acount = models.ForeignKey(Acount, on_delete=models.SET_NULL, null=True, blank=False)
-    name = models.CharField(max_length=200, null=True)
-    address = models.CharField(max_length=200, null=True)
-    phone = models.CharField(max_length=200, null=True)
-    sex = models.BooleanField(default=False, null=True, blank=True)
+class DetailAccount(models.Model):
+    id = models.AutoField(primary_key=True)  
+    name = models.CharField(max_length=100)
+    sex = models.CharField(max_length=10)
+    address = models.CharField(max_length=255)
+    phone = models.CharField(max_length=10)
+    id_account = models.OneToOneField(Account, on_delete=models.CASCADE, related_name='detail')
     def __str__(self) :
         return self.name
     
@@ -34,7 +52,7 @@ class Product(models.Model):
         return url
     
 class Bill(models.Model):
-    acount = models.ForeignKey(Acount, on_delete=models.SET_NULL, null=True, blank=False)
+    Account = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True, blank=False)
     date = models.DateTimeField(auto_now_add=True)
     total_price = models.CharField(max_length=200, null=True)
     status = models.CharField(max_length=200, null=True)
@@ -48,7 +66,7 @@ class Bill_Detail(models.Model):
 
     
 class Cart(models.Model):
-    acount = models.ForeignKey(Acount, on_delete=models.SET_NULL, null=True, blank=False)
+    Account = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True, blank=False)
     def __str__(self):
         return str(self.id)
 
