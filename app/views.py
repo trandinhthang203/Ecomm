@@ -1,8 +1,9 @@
-from django.shortcuts import render 
+from django.shortcuts import render , redirect
 from django.http import HttpResponse
 from .models import *
 import json
-
+from django.contrib import messages
+from .models import Product
 # Create your views here.
 def home(request):
     products = Product.objects.all()
@@ -42,3 +43,47 @@ def detail(request):
     products = Product.objects.filter(id = idd)
     context = {'products': products}
     return render(request, 'app/detail.html', context)
+#dan
+def product_list(request):
+    items_product = Product.objects.all()
+    search_query = request.GET.get('search_query')
+
+    if search_query:
+        items_product = Product.objects.filter(name__icontains=search_query)
+
+    return render(request, 'app/product_list.html', {"items_product": items_product})
+
+def product_create(request):
+    if request.method == "POST":
+        name = request.POST['name']
+        deciption = request.POST['deciption']
+        price = request.POST['price']
+        image = request.FILES['image']  # Sử dụng request.FILES để lấy tệp hình ảnh
+        item_product = Product(name=name, deciption=deciption, price=price, image=image)
+        item_product.save()
+
+        messages.success(request,'sản phẩm đã được tạo thành công!')
+        return redirect('/list')  # Chuyển hướng tới trang danh sách sản phẩm sau khi tạo
+    return render(request,'app/product_create.html',{})
+
+def product_update(request, id):
+    item_product = Product.objects.get(id=id)
+    if request.method == "POST":
+        item_product.name = request.POST['name']
+        item_product.deciption = request.POST['deciption']
+        item_product.price = request.POST['price']
+        
+        # Kiểm tra nếu người dùng đã chọn một tệp hình ảnh mới
+        if 'image' in request.FILES:
+            item_product.image = request.FILES['image']
+
+        item_product.save()
+
+        messages.success(request, 'Sản phẩm đã được cập nhật thành công!')
+        return redirect('/list')  # Chuyển hướng tới trang danh sách sản phẩm sau khi cập nhật
+    return render(request, 'app/product_update.html', {"item_product": item_product})
+def product_delete(request, id):
+    item_product = Product.objects.get(id=id)
+    item_product.delete()
+    messages.success(request, 'Sản phẩm đã được xoá thành công!')
+    return redirect('/list')  # Chuyển hướng tới trang danh sách sản phẩm sau khi xoá
